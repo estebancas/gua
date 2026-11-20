@@ -1,0 +1,5 @@
+.lua/
+.release/
+.env
+release.sh
+.DS_Store

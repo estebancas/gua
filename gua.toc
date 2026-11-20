@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: Get Up Already
+## Notes: GUA, a World of Warcraft: Forever addon.
+## Author: oredrok
+## Version: @project-version@
+## SavedVariables: GUADB
+
+Locale.lua
+Logic.lua
+Core.lua
+Commands.lua
