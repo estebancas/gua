@@ -137,21 +137,21 @@ _None right now._
 
 ## Research needed
 
-Not researched yet. Decisions that depend on an item are flagged in their heading with **[Research: R#]**. Answer these before building the flagged decision.
+Not researched yet. Each item has a GitHub issue labeled `research`. Decisions that depend on an item are flagged in their heading with **[Research: R#]**. Answer these before building the flagged decision.
 
-| ID | Question | Blocks |
-|---|---|---|
-| R1 | Is the Cozy Sleeping Bag a bag item or a toy? Its item/toy ID, how to detect that the character owns it, and how to use it from a secure button. | D4, D15, D17 |
-| R2 | Does time online inside the sleeping bag build rested XP, or only give the +3% buff? Sources disagree (see rested-xp.md). Also confirm the +3% buff duration. | D4, D6, D15 |
-| R3 | Does placing the sleeping bag cancel a logout countdown already in progress? Can an addon start a logout after placing it, or is logout protected? | D17 |
-| R4 | Which event or check detects the logout countdown (for example `PLAYER_CAMPING`), and whether it fires for instant logouts. | D17 |
-| R5 | How to detect each good moment in the Forever client: taxi flight, rested zone, idle (no movement or action), dungeon queue, ghost run, loading screens, boat and zeppelin rides. Boats and zeppelins likely have no direct API. | D2 |
-| R6 | How to detect the game's AFK flag and how long it has been on. | D8 |
-| R7 | How to tell dungeons, raids, battlegrounds and arenas apart from the open world. | D16 |
-| R8 | How to read the rested pool and measure how much a break earned (for example `GetXPExhaustion`). | D4, D9 |
-| R9 | The settings API for an Esc > Options > AddOns page in this client (modern `Settings` API or older `InterfaceOptions`). | D13 |
-| R10 | Built-in sound IDs for the sound dropdown, and how to make sound play while the game is in the background without changing the player's own sound settings. | D3 |
-| R11 | Whether flashing the dock/taskbar icon is available to addons (for example `FlashClientIcon`). | D3 |
-| R12 | Secure button rules: confirm a top-level `SecureActionButtonTemplate` frame anchored to a normal popup can be hidden safely when combat starts. | D11, D15 |
-| R13 | Whether Forever has Midnight-style "secret values" that block any of the reads above, mainly during combat (D14 safety net needs combat and casting state). | D14, all |
-| R14 | Best way to build a minimap button in this client (custom frame or a library such as LibDBIcon). | D9 |
+| ID | Issue | Question | Blocks |
+|---|---|---|---|
+| R1 | [#1](https://github.com/estebancas/gua/issues/1) | Is the Cozy Sleeping Bag a bag item or a toy? Its item/toy ID, how to detect that the character owns it, and how to use it from a secure button. | D4, D15, D17 |
+| R2 | [#2](https://github.com/estebancas/gua/issues/2) | Does time online inside the sleeping bag build rested XP, or only give the +3% buff? Sources disagree (see rested-xp.md). Also confirm the +3% buff duration. | D4, D6, D15 |
+| R3 | [#3](https://github.com/estebancas/gua/issues/3) | Does placing the sleeping bag cancel a logout countdown already in progress? Can an addon start a logout after placing it, or is logout protected? | D17 |
+| R4 | [#4](https://github.com/estebancas/gua/issues/4) | Which event or check detects the logout countdown (for example `PLAYER_CAMPING`), and whether it fires for instant logouts. | D17 |
+| R5 | [#5](https://github.com/estebancas/gua/issues/5) | How to detect each good moment in the Forever client: taxi flight, rested zone, idle (no movement or action), dungeon queue, ghost run, loading screens, boat and zeppelin rides. Boats and zeppelins likely have no direct API. | D2 |
+| R6 | [#6](https://github.com/estebancas/gua/issues/6) | How to detect the game's AFK flag and how long it has been on. | D8 |
+| R7 | [#7](https://github.com/estebancas/gua/issues/7) | How to tell dungeons, raids, battlegrounds and arenas apart from the open world. | D16 |
+| R8 | [#8](https://github.com/estebancas/gua/issues/8) | How to read the rested pool and measure how much a break earned (for example `GetXPExhaustion`). | D4, D9 |
+| R9 | [#9](https://github.com/estebancas/gua/issues/9) | The settings API for an Esc > Options > AddOns page in this client (modern `Settings` API or older `InterfaceOptions`). | D13 |
+| R10 | [#10](https://github.com/estebancas/gua/issues/10) | Built-in sound IDs for the sound dropdown, and how to make sound play while the game is in the background without changing the player's own sound settings. | D3 |
+| R11 | [#11](https://github.com/estebancas/gua/issues/11) | Whether flashing the dock/taskbar icon is available to addons (for example `FlashClientIcon`). | D3 |
+| R12 | [#12](https://github.com/estebancas/gua/issues/12) | Secure button rules: confirm a top-level `SecureActionButtonTemplate` frame anchored to a normal popup can be hidden safely when combat starts. | D11, D15 |
+| R13 | [#13](https://github.com/estebancas/gua/issues/13) | Whether Forever has Midnight-style "secret values" that block any of the reads above, mainly during combat (D14 safety net needs combat and casting state). | D14, all |
+| R14 | [#14](https://github.com/estebancas/gua/issues/14) | Best way to build a minimap button in this client (custom frame or a library such as LibDBIcon). | D9 |
