@@ -104,7 +104,7 @@ Only the "I'm back" button ends a break. Movement, casting and combat do not end
 
 - The break popup has a secure **"Place sleeping bag"** button that uses the Cozy Sleeping Bag and starts the break in one click.
 - Shown only when: the character owns the bag, is out of combat, and is not already in a rested zone.
-- Built with `SecureActionButtonTemplate`, attributes set out of combat (see `standards/combat-and-taint.md`).
+- Built with `SecureActionButtonTemplate`, attributes set out of combat (see `.claude/standards/combat-and-taint.md`).
 - To keep D11 working, the secure button is its **own top-level frame** anchored to the popup, not a child of it. It hides when combat starts, so the popup itself stays an ordinary frame that can show and hide during combat.
 
 ### D16. Quiet zones **[Research: R7]**

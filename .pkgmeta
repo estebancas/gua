@@ -4,8 +4,6 @@ ignore:
   - .lua
   - spec
   - scripts
-  - standards
-  - testing-debugging
   - rested-xp.md
   - .luacheckrc
   - .claude

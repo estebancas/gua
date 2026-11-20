@@ -13,8 +13,8 @@ A World of Warcraft: Forever addon.
 | `Commands.lua` | `/gua` slash commands |
 | `spec/` | busted unit tests |
 | `scripts/` | Dev setup and game linking |
-| `standards/` | Coding standards |
-| `testing-debugging/` | How to test and debug |
+| `.claude/standards/` | Coding standards |
+| `.claude/testing-debugging/` | How to test and debug |
 
 ## Getting started
 
