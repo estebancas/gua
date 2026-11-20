@@ -51,7 +51,7 @@ Check each item; tell the user what's missing. Steps marked (user) must be done 
    - `luacheck .` and `busted` pass (activate `.lua/bin/activate` first).
    - `## Interface` in `gua.toc` matches the current client. The user can check in-game with `/dump select(4, GetBuildInfo())`. 16001 = patch 1.60.1.
    - Working tree is clean and on the main branch.
-   - Run through `testing-debugging/checklist.md` with the user, or confirm they have.
+   - Run through `.claude/testing-debugging/checklist.md` with the user, or confirm they have.
 2. **Pick the version** with the user, using semantic versioning. The tag name sets the CurseForge release type (**Unverified**, from a third-party guide):
    | Tag | Type |
    |---|---|
@@ -64,7 +64,7 @@ Check each item; tell the user what's missing. Steps marked (user) must be done 
 6. **Verify** with the user on the CurseForge project's Files tab:
    - The file is there with the right release type.
    - **Game version is 1.60.1 (Forever).** The packager added Forever support in Sept 2026 (matching 1.6x interfaces), but one report says unknown interfaces get tagged as Retail. If it's wrong, the user fixes it on the file page.
-   - The zip contains only addon files (no `spec/`, `standards/`, scripts).
+   - The zip contains only addon files (no `spec/`, `.claude/`, scripts).
 
 ## Local build (no upload)
 
