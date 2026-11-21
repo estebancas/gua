@@ -1,10 +1,11 @@
 package-as: gua
 
+# The packager always skips files and folders whose names start with a dot
+# (.lua, .luacheckrc, .claude, .github, ...), so they don't need listing here.
 ignore:
-  - .lua
   - spec
   - scripts
+  - CLAUDE.md
+  - PLAN.md
   - rested-xp.md
-  - .luacheckrc
-  - .claude
-  - .github
+  - guardrails-research.md
