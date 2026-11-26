@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   checks:
-    name: Lint and test
+    name: lint-and-test
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -60,7 +60,7 @@ jobs:
         run: lua scripts/check-toc.lua
 
   package:
-    name: Package
+    name: package
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
