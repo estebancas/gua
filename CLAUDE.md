@@ -19,7 +19,8 @@ busted spec/logic_spec.lua      # one spec file
 busted --filter "parseCommand"  # tests whose name matches
 
 # The CI checks (.github/workflows/ci.yml). Run them all before finishing work:
-sh scripts/check-all.sh         # luacheck, tests + coverage, forbidden APIs, TOC; reports every failure
+sh scripts/check-all.sh         # luacheck, tests + coverage, forbidden APIs, TOC, and zizmor, actionlint
+                                # and gitleaks when installed (brew); reports every failure
 sh scripts/test.sh              # tests + coverage only (clears old coverage data first)
 ```
 
@@ -35,6 +36,13 @@ CI also builds the zip with the BigWigs packager (`-d`, no upload) and runs `scr
 
   It scans every file `gua.toc` lists, whatever its folder. It ignores comments. It catches mistakes, not a call hidden on purpose (a name built at run time can still get past it), so review still matters.
 - **TOC:** every addon `.lua` file must be listed in `gua.toc` with the exact case, and no listed file may be in a folder `.pkgmeta` ignores. Only `spec/`, `scripts/`, `.lua/` and libraries declared under `externals:` in `.pkgmeta` are exempt; a folder name like `Libs/` is not.
+- **Workflows and secrets:** `lint-and-test` also runs zizmor (rules in `.github/zizmor.yml`), actionlint and gitleaks over the git history. Every workflow must:
+  - pin each action to a full commit SHA with a version comment (Dependabot updates them weekly);
+  - set top-level `permissions: contents: read` and widen it only per job;
+  - check out with `persist-credentials: false`;
+  - never use `pull_request_target`.
+
+  If a library is ever added under `externals:` in `.pkgmeta`, pin it to a `tag:` and review each bump.
 - Never weaken a check (thresholds, allowlists, `.luacheckrc` ignores) to make it pass. Fix the code, or say so in the PR so the owner reviews it.
 - **Claude Code hooks** (`.claude/settings.json`, scripts in `.claude/hooks/`) run the same checks while you work. They need `scripts/setup-dev.sh` to have run once.
   - After each `Edit`/`Write` of a `.lua` file, luacheck runs on that file, and any warning comes straight back to you.
