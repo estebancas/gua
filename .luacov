@@ -1,0 +1,7 @@
+-- LuaCov settings for `busted --coverage`. Only pure logic is measured:
+-- the other addon files call the WoW API and are tested in game.
+return {
+  include = { "Logic$" },
+  statsfile = "luacov.stats.out",
+  reportfile = "luacov.report.out",
+}

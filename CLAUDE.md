@@ -7,7 +7,7 @@ GUA (Get Up Already) is a World of Warcraft: **Forever** addon that reminds the 
 ## Commands
 
 ```sh
-scripts/setup-dev.sh            # once: Lua 5.1 + luacheck + busted into ./.lua (via hererocks)
+scripts/setup-dev.sh            # once: Lua 5.1 + luacheck + busted + luacov into ./.lua (via hererocks, pinned versions)
 . .lua/bin/activate             # each new shell, before luacheck/busted
 scripts/link.sh                 # once: symlink repo into the game's AddOns/ as "gua"
                                 # (override with WOW_DIR="/path/to/_forever_")
@@ -16,7 +16,18 @@ luacheck .                      # lint
 busted                          # all tests (run from repo root; specs use relative paths)
 busted spec/logic_spec.lua      # one spec file
 busted --filter "parseCommand"  # tests whose name matches
+
+# The CI checks (.github/workflows/ci.yml). Run all of them before finishing work:
+luacheck . && busted --coverage && luacov && sh scripts/check-coverage.sh 90 \
+  && lua scripts/check-forbidden-api.lua && lua scripts/check-toc.lua
 ```
+
+CI also builds the zip with the BigWigs packager (`-d`, no upload) and runs `scripts/check-package.sh`, which fails on any file outside the allowlist: `gua.toc`, the files it lists, `README.md`, `CHANGELOG.md`, `LICENSE`.
+
+- **Coverage:** `Logic.lua` must stay at 90% or more; new logic needs specs.
+- **Forbidden APIs:** code-from-string, addon/chat messaging, macro edits and `hooksecurefunc` fail the build unless the line ends with `-- gua-allow: <reason>`. Adding one makes the PR risky.
+- **TOC:** every addon `.lua` file (outside `spec/`, `scripts/`, `Libs/`) must be listed in `gua.toc` with the exact case.
+- Never weaken a check (thresholds, allowlists, `.luacheckrc` ignores) to make it pass. Fix the code, or say so in the PR so the owner reviews it.
 
 In-game: `/reload` picks up Lua edits. Changes to `gua.toc` or adding new files need a full game restart. Slash commands: `/gua help|toggle|debug|version`.
 
