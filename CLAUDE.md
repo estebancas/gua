@@ -36,6 +36,11 @@ CI also builds the zip with the BigWigs packager (`-d`, no upload) and runs `scr
   It scans every file `gua.toc` lists, whatever its folder. It ignores comments. It catches mistakes, not a call hidden on purpose (a name built at run time can still get past it), so review still matters.
 - **TOC:** every addon `.lua` file must be listed in `gua.toc` with the exact case, and no listed file may be in a folder `.pkgmeta` ignores. Only `spec/`, `scripts/`, `.lua/` and libraries declared under `externals:` in `.pkgmeta` are exempt; a folder name like `Libs/` is not.
 - Never weaken a check (thresholds, allowlists, `.luacheckrc` ignores) to make it pass. Fix the code, or say so in the PR so the owner reviews it.
+- **Claude Code hooks** (`.claude/settings.json`, scripts in `.claude/hooks/`) run the same checks while you work. They need `scripts/setup-dev.sh` to have run once.
+  - After each `Edit`/`Write` of a `.lua` file, luacheck runs on that file, and any warning comes straight back to you.
+  - Before a turn that changed files ends, `scripts/check-all.sh` runs, and a failure stops the turn from ending until it's fixed. After 3 failed tries in one turn, the hook lets the turn end and warns the user instead.
+  - If a failure comes from changes you did not make, tell the user rather than fixing their work.
+  - CI is the final word: hooks can be skipped, CI can't.
 
 In-game: `/reload` picks up Lua edits. Changes to `gua.toc` or adding new files need a full game restart. Slash commands: `/gua help|toggle|debug|version`.
 
