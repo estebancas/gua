@@ -111,3 +111,70 @@ jobs:
 
       - name: Check the zip against the allowlist
         run: sh scripts/check-package.sh
+
+  # Informational, not a required check (decided on #49): reports whether the
+  # PR is low-risk (the agent may merge it once every check is green) or risky
+  # (the owner merges it). The agent's local merge wrapper runs the same
+  # classifier from origin/main and refuses risky PRs.
+  risk-gate:
+    name: risk-gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python (for hererocks)
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Cache Lua 5.1 and rocks
+        id: lua-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .lua
+          key: lua-${{ runner.os }}-${{ hashFiles('scripts/setup-dev.sh') }}
+
+      - name: Install Lua 5.1
+        if: steps.lua-cache.outputs.cache-hit != 'true'
+        run: sh scripts/setup-dev.sh
+
+      - name: Classify the PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          lua="$GITHUB_WORKSPACE/.lua/bin/lua"
+          base="$RUNNER_TEMP/base"
+          mkdir -p "$base"
+          # Use the base branch's classifier, so a PR can't edit it to call itself safe.
+          if git cat-file -e "$BASE_SHA:scripts/classify-risk.lua" 2>/dev/null; then
+            git archive "$BASE_SHA" scripts | tar -x -C "$base"
+            from="the base branch"
+          else
+            cp -R scripts "$base/"
+            from="this PR, because the base branch has no classifier yet"
+          fi
+          git diff --no-color --no-ext-diff -M "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/pr.diff"
+          code=0
+          (cd "$base" && "$lua" scripts/classify-risk.lua < "$RUNNER_TEMP/pr.diff") > "$RUNNER_TEMP/verdict.txt" || code=$?
+          cat "$RUNNER_TEMP/verdict.txt"
+          {
+            echo "## Risk gate"
+            echo
+            echo "Classifier from $from. Informational: the owner merges risky PRs; the agent merges only \`risk:low\` PRs, through its local wrapper."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/verdict.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          case "$code" in
+            0) echo "::notice title=risk:low::The agent may merge this PR once every check is green." ;;
+            1) echo "::warning title=risk:high::The owner merges this PR. Reasons are in the job summary." ;;
+            *) exit "$code" ;;
+          esac

@@ -109,4 +109,37 @@ function repo.readToc()
   return toc
 end
 
+-- The whole word `name`.
+local function word(name)
+  return "%f[%w_]" .. name .. "%f[^%w_]"
+end
+-- The whole word `name`, not after "." or ":", so a method such as
+-- `obj:load()` is fine.
+local function freeWord(name)
+  return "%f[%w_.:]" .. name .. "%f[^%w_]"
+end
+
+-- APIs addon code must not use without a "-- gua-allow: <reason>" comment.
+-- Shared by check-forbidden-api.lua and classify-risk.lua.
+repo.FORBIDDEN = {
+  { pattern = word("loadstring"), why = "runs a string as code" },
+  { pattern = freeWord("load"), why = "runs a string or function as code" },
+  { pattern = word("RunScript"), why = "runs a string as code" },
+  { pattern = word("setfenv"), why = "changes a function's environment" },
+  { pattern = word("getfenv"), why = "reads a function's environment" },
+  { pattern = "%f[%w_]_G%s*%[", why = "looks up a global by a computed name, which can hide any call" },
+  { pattern = word("getglobal"), why = "looks up a global by a computed name, which can hide any call" },
+  { pattern = "%f[%w_]rawget%s*%(%s*_G%f[^%w_]", why = "looks up a global by a computed name, which can hide any call" },
+  { pattern = "SendAddonMessage", why = "sends data to other players" },
+  { pattern = "CHAT_MSG_ADDON", why = "receives data from other players" },
+  { pattern = "RegisterAddonMessagePrefix", why = "receives data from other players" },
+  { pattern = word("SendChatMessage"), why = "speaks in chat for the player" },
+  { pattern = word("EditMacro"), why = "changes the player's macros" },
+  { pattern = word("CreateMacro"), why = "changes the player's macros" },
+  { pattern = word("hooksecurefunc"), why = "hooks Blizzard code; check combat-and-taint.md" },
+}
+
+-- Accepted only as the comment that ends the line, with a reason.
+repo.ALLOW = "^%-%-%s*gua%-allow:%s*%S"
+
 return repo

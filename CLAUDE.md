@@ -109,6 +109,15 @@ Name branches `<type>/<issue>-<short-description>`, for example `feat/12-flight-
 - **Issue number:** the GitHub issue the branch works on. Put `Fixes #<issue>` in the pull request so merging closes the issue and moves it to Done on the Kanban board.
 - **Short description:** three or four kebab-case words, enough to recognise the branch without opening the issue.
 
+## Merging
+
+The agent may merge its own **low-risk** PRs once every check is green; **risky** PRs are merged by the owner (#49).
+
+- `scripts/classify-risk.lua` decides, not the agent's judgment. Risky: anything touching the guardrails (`.github/`, `.claude/`, `scripts/`, `CLAUDE.md`, lint and coverage config, `spec/helpers.lua`), what ships (`.pkgmeta`, `*.toc`, `LICENSE`, `.gitignore`), `PLAN.md` or `rested-xp.md`; removed or pending tests; new `gua-allow` comments; forbidden APIs, secure code or saved-data changes; more than 300 lines or 10 files; anything it can't classify. Check a branch with `lua scripts/classify-risk.lua main`.
+- The `risk-gate` CI job shows the verdict on every PR. It is informational, not a required check.
+- Merge only with `~/.claude/bin/gua-merge <pr>`. It lives outside the repo and uses `origin/main`'s classifier, so a PR can't change either. A user-level hook blocks `gh pr merge`, `--admin`, pushes to `main` and force pushes.
+- Never try to lower a verdict (splitting a change to dodge a rule, editing the classifier in the same PR). If unsure, leave it to the owner.
+
 ## Releasing
 
 Releases go through the BigWigs packager (`.pkgmeta`; `@project-version@` in the `.toc` is replaced by the git tag). Use the `curseforge-deploy` skill. Publishing is public — get explicit user approval before pushing a tag or uploading.
