@@ -1,0 +1,80 @@
+# Judges every push to main and every pull request. Each step fails with a
+# message that says what to fix. Run the same checks locally: see CLAUDE.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Only cancel superseded PR runs; every commit on main keeps its result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: Lint and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python (for hererocks)
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Cache Lua 5.1 and rocks
+        id: lua-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .lua
+          key: lua-${{ runner.os }}-${{ hashFiles('scripts/setup-dev.sh') }}
+
+      - name: Install Lua 5.1, luacheck, busted, luacov
+        if: steps.lua-cache.outputs.cache-hit != 'true'
+        run: sh scripts/setup-dev.sh
+
+      - name: Add Lua to PATH
+        run: echo "$GITHUB_WORKSPACE/.lua/bin" >> "$GITHUB_PATH"
+
+      - name: Lint (luacheck)
+        run: luacheck . --no-color
+
+      - name: Unit tests and coverage of Logic.lua (minimum 90%)
+        run: sh scripts/test.sh -o utfTerminal
+
+      - name: Forbidden API check
+        if: ${{ !cancelled() }}
+        run: lua scripts/check-forbidden-api.lua
+
+      - name: TOC check
+        if: ${{ !cancelled() }}
+        run: lua scripts/check-toc.lua
+
+  package:
+    name: Package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # -d: build the zip but never upload. No secrets are passed to this job.
+      - name: Build the zip (BigWigs packager, dry run)
+        uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
+        with:
+          args: -d
+
+      - name: Check the zip against the allowlist
+        run: sh scripts/check-package.sh

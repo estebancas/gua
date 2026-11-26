@@ -7,7 +7,8 @@ GUA (Get Up Already) is a World of Warcraft: **Forever** addon that reminds the 
 ## Commands
 
 ```sh
-scripts/setup-dev.sh            # once: Lua 5.1 + luacheck + busted into ./.lua (via hererocks)
+scripts/setup-dev.sh            # once: Lua 5.1 + luacheck + busted + luacov into ./.lua (via hererocks;
+                                # every rock, dependencies included, pinned to an exact version)
 . .lua/bin/activate             # each new shell, before luacheck/busted
 scripts/link.sh                 # once: symlink repo into the game's AddOns/ as "gua"
                                 # (override with WOW_DIR="/path/to/_forever_")
@@ -16,7 +17,25 @@ luacheck .                      # lint
 busted                          # all tests (run from repo root; specs use relative paths)
 busted spec/logic_spec.lua      # one spec file
 busted --filter "parseCommand"  # tests whose name matches
+
+# The CI checks (.github/workflows/ci.yml). Run them all before finishing work:
+sh scripts/check-all.sh         # luacheck, tests + coverage, forbidden APIs, TOC; reports every failure
+sh scripts/test.sh              # tests + coverage only (clears old coverage data first)
 ```
+
+CI also builds the zip with the BigWigs packager (`-d`, no upload) and runs `scripts/check-package.sh`. It fails when a file listed in `gua.toc` is missing from the zip, or when the zip holds anything besides `gua.toc`, the files it lists, `README.md`, `CHANGELOG.md`, `LICENSE` or `LICENSE.md`.
+
+- **Coverage:** `Logic.lua` must stay at 90% or more; new logic needs specs. Run tests through `scripts/test.sh`: plain `busted --coverage` adds to old coverage data, so a deleted test can still look covered.
+- **Forbidden APIs:** fail the build unless a comment ending the line says `-- gua-allow: <reason>`. Adding one makes the PR risky. The list:
+  - code from strings: `loadstring`, `load`, `RunScript`, `setfenv`/`getfenv`;
+  - global lookup by a computed name: `_G[...]`, `getglobal`, `rawget(_G, ...)`;
+  - addon and chat messaging;
+  - macro edits;
+  - `hooksecurefunc`.
+
+  It scans every file `gua.toc` lists, whatever its folder. It ignores comments. It catches mistakes, not a call hidden on purpose (a name built at run time can still get past it), so review still matters.
+- **TOC:** every addon `.lua` file must be listed in `gua.toc` with the exact case, and no listed file may be in a folder `.pkgmeta` ignores. Only `spec/`, `scripts/`, `.lua/` and libraries declared under `externals:` in `.pkgmeta` are exempt; a folder name like `Libs/` is not.
+- Never weaken a check (thresholds, allowlists, `.luacheckrc` ignores) to make it pass. Fix the code, or say so in the PR so the owner reviews it.
 
 In-game: `/reload` picks up Lua edits. Changes to `gua.toc` or adding new files need a full game restart. Slash commands: `/gua help|toggle|debug|version`.
 
