@@ -12,7 +12,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Only cancel superseded PR runs; every commit on main keeps its result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
@@ -47,13 +48,8 @@ jobs:
       - name: Lint (luacheck)
         run: luacheck . --no-color
 
-      - name: Unit tests (busted)
-        run: busted --coverage -o utfTerminal
-
-      - name: Coverage of Logic.lua (minimum 90%)
-        run: |
-          luacov
-          sh scripts/check-coverage.sh 90
+      - name: Unit tests and coverage of Logic.lua (minimum 90%)
+        run: sh scripts/test.sh -o utfTerminal
 
       - name: Forbidden API check
         if: ${{ !cancelled() }}

@@ -21,24 +21,43 @@ if [ -z "$zip" ]; then
   zip="$1"
 fi
 
+required=$(mktemp)
 allowed=$(mktemp)
 actual=$(mktemp)
-trap 'rm -f "$allowed" "$actual"' EXIT
+trap 'rm -f "$required" "$allowed" "$actual"' EXIT
 
+# Must be in the zip: the .toc and every file it lists.
 {
-  echo "gua/"
   echo "gua/$toc"
+  sed -e 's/\r$//' -e 's/\\/\//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$toc" |
+    grep -v -e '^#' -e '^$' |
+    sed 's/^/gua\//'
+} | sort -u > "$required"
+
+# May be in the zip: the required files, their folders, and docs for players.
+{
+  cat "$required"
+  echo "gua/"
   echo "gua/README.md"
   echo "gua/CHANGELOG.md"
   echo "gua/LICENSE"
   echo "gua/LICENSE.md"
-  # Files listed in the .toc, plus each parent folder of nested ones.
-  sed -e 's/\r$//' -e 's/\\/\//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$toc" |
-    grep -v -e '^#' -e '^$' |
-    awk '{ print "gua/" $0; n = split($0, part, "/"); dir = "gua/"; for (i = 1; i < n; i++) { dir = dir part[i] "/"; print dir } }'
+  # Each parent folder of nested .toc entries.
+  sed 's/^gua\///' "$required" |
+    awk '{ n = split($0, part, "/"); dir = "gua/"; for (i = 1; i < n; i++) { dir = dir part[i] "/"; print dir } }'
 } | sort -u > "$allowed"
 
 unzip -Z1 "$zip" | sort -u > "$actual"
+
+status=0
+
+missing=$(comm -23 "$required" "$actual")
+if [ -n "$missing" ]; then
+  echo "The package is missing files that $toc loads, so the addon would fail in game:"
+  echo "$missing" | sed 's/^/  /'
+  echo "Check 'ignore:' in .pkgmeta: it must not cover files listed in $toc."
+  status=1
+fi
 
 extra=$(comm -13 "$allowed" "$actual")
 if [ -n "$extra" ]; then
@@ -46,6 +65,10 @@ if [ -n "$extra" ]; then
   echo "$extra" | sed 's/^/  /'
   echo "Add them to 'ignore:' in .pkgmeta, or, if players need them, list them in $toc"
   echo "or in scripts/check-package.sh (a risky change: it needs the owner's review)."
+  status=1
+fi
+
+if [ "$status" -ne 0 ]; then
   exit 1
 fi
 
