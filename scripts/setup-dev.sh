@@ -12,7 +12,9 @@ if [ -z "${SSL_CERT_FILE:-}" ] && [ -f /etc/ssl/cert.pem ]; then
 fi
 
 python3 -m pip install --user hererocks==0.25.1
-python3 -m hererocks .lua -l 5.1 -r 3.8.0
+# --no-readline: the CI runner has no readline headers, and the tools don't need
+# Lua's interactive prompt.
+python3 -m hererocks .lua -l 5.1 -r 3.8.0 --no-readline
 
 .lua/bin/luarocks install luacheck 1.2.0-1
 .lua/bin/luarocks install busted 2.3.0-1
