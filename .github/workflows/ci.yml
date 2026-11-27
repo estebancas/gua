@@ -111,3 +111,61 @@ jobs:
 
       - name: Check the zip against the allowlist
         run: sh scripts/check-package.sh
+
+  # Informational, not a required check (decided on #49): reports whether the
+  # PR is low-risk (the agent may merge it once every check is green) or risky
+  # (the owner merges it). It runs the base branch's classifier with Lua from
+  # the Ubuntu package, so no code from the PR runs. But a PR that edits this
+  # workflow can change the job itself, so the verdict here is a guide only:
+  # the agent's local merge wrapper, which runs origin/main's classifier, is
+  # what enforces it.
+  risk-gate:
+    name: risk-gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Lua 5.1 (Ubuntu package, not the PR's setup script)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends lua5.1
+
+      - name: Classify the PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          base="$RUNNER_TEMP/base"
+          mkdir -p "$base"
+          # Use the base branch's classifier, so a PR can't edit it to call itself safe.
+          if git cat-file -e "$BASE_SHA:scripts/classify-risk.lua" 2>/dev/null; then
+            git archive "$BASE_SHA" scripts | tar -x -C "$base"
+            from="the base branch"
+          else
+            cp -R scripts "$base/"
+            from="this PR, because the base branch has no classifier yet"
+          fi
+          git diff --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ -M "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/pr.diff"
+          code=0
+          (cd "$base" && lua5.1 scripts/classify-risk.lua < "$RUNNER_TEMP/pr.diff") > "$RUNNER_TEMP/verdict.txt" || code=$?
+          cat "$RUNNER_TEMP/verdict.txt"
+          {
+            echo "## Risk gate"
+            echo
+            echo "Classifier from $from. This is a guide, not the gate: a PR that edits \`.github/\` can change this job, and it is risky for that reason alone. The agent's local merge wrapper re-checks with \`origin/main\`'s classifier and merges only \`risk:low\` PRs; the owner merges the rest."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/verdict.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          case "$code" in
+            0) echo "::notice title=risk:low::Classified low-risk. The agent's merge wrapper re-checks before merging." ;;
+            1) echo "::warning title=risk:high::The owner merges this PR. Reasons are in the job summary." ;;
+            *) exit "$code" ;;
+          esac
