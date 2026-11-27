@@ -9,6 +9,10 @@ updates:
     # release has time to be caught.
     cooldown:
       default-days: 7
+    # PR titles follow the commit format (checked by pr-title.yml, issue #58):
+    # this gives "🔧 chore: bump ...".
+    commit-message:
+      prefix: "🔧 chore"
     groups:
       actions-minor-patch:
         update-types: [minor, patch]

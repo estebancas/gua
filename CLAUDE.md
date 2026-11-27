@@ -26,7 +26,7 @@ sh scripts/test.sh              # tests + coverage only (clears old coverage dat
 
 CI also builds the zip with the BigWigs packager (`-d`, no upload) and runs `scripts/check-package.sh`. It fails when a file listed in `gua.toc` is missing from the zip, or when the zip holds anything besides `gua.toc`, the files it lists, `README.md`, `CHANGELOG.md`, `LICENSE` or `LICENSE.md`.
 
-- **Coverage:** each measured file (`Logic.lua` and `scripts/classify-risk.lua`, set in `.luacov`) must stay at 90% or more, and so must the total; new logic needs specs. Run tests through `scripts/test.sh`: plain `busted --coverage` adds to old coverage data, so a deleted test can still look covered.
+- **Coverage:** each measured file (`Logic.lua`, `scripts/classify-risk.lua` and `scripts/check-pr-title.lua`, set in `.luacov`) must stay at 90% or more, and so must the total; new logic needs specs. Run tests through `scripts/test.sh`: plain `busted --coverage` adds to old coverage data, so a deleted test can still look covered.
 - **Forbidden APIs:** fail the build unless a comment ending the line says `-- gua-allow: <reason>`. Adding one makes the PR risky. The list:
   - code from strings: `loadstring`, `load`, `RunScript`, `setfenv`/`getfenv`;
   - global lookup by a computed name: `_G[...]`, `getglobal`, `rawget(_G, ...)`;
@@ -108,6 +108,8 @@ Name branches `<type>/<issue>-<short-description>`, for example `feat/12-flight-
 - **Type:** a Conventional Commits word: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`. This keeps branch lists sorted by kind of work.
 - **Issue number:** the GitHub issue the branch works on. Put `Fixes #<issue>` in the pull request so merging closes the issue and moves it to Done on the Kanban board.
 - **Short description:** three or four kebab-case words, enough to recognise the branch without opening the issue.
+
+PR titles become the squash commit subject on `main`, so they use the commit format: `{emoji} {type}: {subject}`, subject 45 characters or fewer (types: 🚀 feat, 🐛 fix, 📝 docs, 💅 style, ♻️ ref, ⚡️ perf, 🧪 test, 🔧 chore). The `pr-title` CI check (`.github/workflows/pr-title.yml`) fails otherwise; check one locally with `PR_TITLE="..." lua scripts/check-pr-title.lua`.
 
 ## Merging
 
