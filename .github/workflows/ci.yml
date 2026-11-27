@@ -118,12 +118,16 @@ jobs:
   # the Ubuntu package, so no code from the PR runs. But a PR that edits this
   # workflow can change the job itself, so the verdict here is a guide only:
   # the agent's local merge wrapper, which runs origin/main's classifier, is
-  # what enforces it.
+  # what enforces it. It also labels the PR risk:high (red) or risk:low (green),
+  # which needs write access to PRs; nothing from the PR runs in this job.
   risk-gate:
     name: risk-gate
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -137,20 +141,21 @@ jobs:
           sudo apt-get install -y -qq --no-install-recommends lua5.1
 
       - name: Classify the PR
+        id: classify
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           base="$RUNNER_TEMP/base"
           mkdir -p "$base"
-          # Use the base branch's classifier, so a PR can't edit it to call itself safe.
-          if git cat-file -e "$BASE_SHA:scripts/classify-risk.lua" 2>/dev/null; then
-            git archive "$BASE_SHA" scripts | tar -x -C "$base"
-            from="the base branch"
-          else
-            cp -R scripts "$base/"
-            from="this PR, because the base branch has no classifier yet"
+          # Use the base branch's classifier, so a PR can't edit it to call itself
+          # safe, and so no code from the PR runs while this job can write labels.
+          if ! git cat-file -e "$BASE_SHA:scripts/classify-risk.lua" 2>/dev/null; then
+            echo "::error::The base branch has no scripts/classify-risk.lua."
+            exit 2
           fi
+          git archive "$BASE_SHA" scripts | tar -x -C "$base"
+          from="the base branch"
           git diff --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ -M "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/pr.diff"
           code=0
           (cd "$base" && lua5.1 scripts/classify-risk.lua < "$RUNNER_TEMP/pr.diff") > "$RUNNER_TEMP/verdict.txt" || code=$?
@@ -165,7 +170,27 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           case "$code" in
-            0) echo "::notice title=risk:low::Classified low-risk. The agent's merge wrapper re-checks before merging." ;;
-            1) echo "::warning title=risk:high::The owner merges this PR. Reasons are in the job summary." ;;
+            0) echo "::notice title=risk:low::Classified low-risk. The agent's merge wrapper re-checks before merging."
+               echo "label=risk:low" >> "$GITHUB_OUTPUT" ;;
+            1) echo "::warning title=risk:high::The owner merges this PR. Reasons are in the job summary."
+               echo "label=risk:high" >> "$GITHUB_OUTPUT" ;;
             *) exit "$code" ;;
           esac
+
+      # Fork PRs get a read-only token, so they keep only the annotation.
+      - name: Label the PR
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          LABEL: ${{ steps.classify.outputs.label }}
+        run: |
+          case "$LABEL" in
+            risk:low) stale=risk:high ;;
+            risk:high) stale=risk:low ;;
+            *) echo "::error::No verdict to label."; exit 1 ;;
+          esac
+          # A new push can change the verdict, so drop the old label first.
+          gh api -X DELETE "repos/$REPO/issues/$PR/labels/$stale" --silent 2>/dev/null || true
+          gh api -X POST "repos/$REPO/issues/$PR/labels" -f "labels[]=$LABEL" --silent
