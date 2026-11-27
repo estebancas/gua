@@ -118,7 +118,7 @@ jobs:
   # the Ubuntu package, so no code from the PR runs. But a PR that edits this
   # workflow can change the job itself, so the verdict here is a guide only:
   # the agent's local merge wrapper, which runs origin/main's classifier, is
-  # what enforces it. It also labels the PR risk:high (red) or risk:low (green),
+  # what enforces it. It also labels the PR "risky" (red) or "low risk" (green),
   # which needs write access to PRs; nothing from the PR runs in this job.
   risk-gate:
     name: risk-gate
@@ -171,9 +171,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           case "$code" in
             0) echo "::notice title=risk:low::Classified low-risk. The agent's merge wrapper re-checks before merging."
-               echo "label=risk:low" >> "$GITHUB_OUTPUT" ;;
+               echo "label=low risk" >> "$GITHUB_OUTPUT" ;;
             1) echo "::warning title=risk:high::The owner merges this PR. Reasons are in the job summary."
-               echo "label=risk:high" >> "$GITHUB_OUTPUT" ;;
+               echo "label=risky" >> "$GITHUB_OUTPUT" ;;
             *) exit "$code" ;;
           esac
 
@@ -187,8 +187,8 @@ jobs:
           LABEL: ${{ steps.classify.outputs.label }}
         run: |
           case "$LABEL" in
-            risk:low) stale=risk:high ;;
-            risk:high) stale=risk:low ;;
+            "low risk") stale=risky ;;
+            risky) stale="low%20risk" ;;
             *) echo "::error::No verdict to label."; exit 1 ;;
           esac
           # A new push can change the verdict, so drop the old label first.
