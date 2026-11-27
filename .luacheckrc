@@ -1,6 +1,6 @@
 std = "lua51"
 max_line_length = false
-exclude_files = { ".lua/", "Libs/", ".release/" }
+exclude_files = { ".lua/", ".luals/", "Libs/", ".release/" }
 
 -- Globals this addon creates.
 globals = {

@@ -1,6 +1,7 @@
 #!/bin/sh
 # Runs every CI check that works offline, reports each one, and fails if any
 # failed. The zip check needs the BigWigs packager, so it runs in CI only.
+# The LuaLS type check runs once scripts/setup-luals.sh has installed it.
 # zizmor, actionlint and gitleaks run when installed (brew install zizmor
 # actionlint gitleaks) and are skipped with a note otherwise; CI always runs them.
 # Usage (repo root, with .lua/bin on PATH): sh scripts/check-all.sh
@@ -30,6 +31,13 @@ optional() {
     echo "==> $1: skipped ($2 not installed; CI runs it)"
   fi
 }
+
+# LuaLS lives in .luals (scripts/setup-luals.sh), not on PATH.
+if [ -x .luals/luals/bin/lua-language-server ]; then
+  run types sh scripts/check-types.sh
+else
+  echo "==> types: skipped (run sh scripts/setup-luals.sh; CI runs it)"
+fi
 
 optional zizmor zizmor --offline --no-progress --quiet .
 optional actionlint actionlint
