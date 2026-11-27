@@ -26,6 +26,16 @@ describe("Logic", function()
       assert.are.same({ x = 10, y = 0 }, db.frame)
     end)
 
+    it("keeps keys that have no default", function()
+      local db = Logic.mergeDefaults({ legacy = 1 }, { enabled = true })
+      assert.are.equal(1, db.legacy)
+    end)
+
+    it("returns the target table itself", function()
+      local target = {}
+      assert.are.equal(target, Logic.mergeDefaults(target, { enabled = true }))
+    end)
+
     it("replaces a non-table value where a table is expected", function()
       local db = Logic.mergeDefaults({ frame = "broken" }, { frame = { x = 0 } })
       assert.are.same({ x = 0 }, db.frame)

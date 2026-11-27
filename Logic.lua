@@ -6,7 +6,8 @@ local Logic = {}
 ns.Logic = Logic
 
 -- Copies every default missing from target, recursing into nested tables.
--- Values the user already has are kept.
+-- Values the user already has are kept, including keys with no default.
+-- Returns target itself, not a copy.
 function Logic.mergeDefaults(target, defaults)
   for key, value in pairs(defaults) do
     if type(value) == "table" then
