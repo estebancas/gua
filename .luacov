@@ -1,8 +1,9 @@
 -- LuaCov settings for `busted --coverage`. Only pure logic is measured:
 -- the other addon files call the WoW API and are tested in game. The
--- risk classifier is measured too, since the merge gate relies on it.
+-- risk classifier and the PR title check are measured too, since the merge
+-- gate relies on them.
 return {
-  include = { "Logic$", "classify%-risk$" },
+  include = { "Logic$", "classify%-risk$", "check%-pr%-title$" },
   statsfile = "luacov.stats.out",
   reportfile = "luacov.report.out",
 }

@@ -1,0 +1,39 @@
+# Checks that the PR title follows the commit format, since it becomes the
+# squash commit subject on main (issue #58). Its own workflow so that renaming
+# a PR re-runs only this check. gua-merge needs every check to pass, so a bad
+# title blocks the agent's merge.
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    name: pr-title
+    # Dependabot writes its own titles; its prefix is set in dependabot.yml.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Lua 5.1 (Ubuntu package)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends lua5.1
+
+      - name: Check the title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: lua5.1 scripts/check-pr-title.lua
