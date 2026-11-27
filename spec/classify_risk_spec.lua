@@ -94,6 +94,29 @@ describe("classify-risk", function()
 
     it("flags a new pending test", function()
       assertHigh("new pending test", diff("spec/logic_spec.lua", { added = { 'pending("later")' } }))
+      assertHigh("new pending test", diff("spec/logic_spec.lua", { added = { 'it("x", function() pending("y") end)' } }))
+      assertHigh("new pending test", diff("spec/logic_spec.lua", { added = { '  it("has no body yet")' } }))
+    end)
+
+    it("flags a spec file renamed away, with or without edits", function()
+      local pure = table.concat({
+        "diff --git a/spec/logic_spec.lua b/spec/logic_spec.md",
+        "similarity index 100%",
+        "rename from spec/logic_spec.lua",
+        "rename to spec/logic_spec.md",
+      }, "\n")
+      assertHigh("spec file moved or renamed away): spec/logic_spec.lua", pure)
+      assertHigh("renamed away", diff("docs/logic_spec.md", { old = "spec/logic_spec.lua", added = { "text" } }))
+    end)
+
+    it("accepts a spec file renamed to another spec file", function()
+      local renamed = table.concat({
+        "diff --git a/spec/logic_spec.lua b/spec/rules_spec.lua",
+        "similarity index 100%",
+        "rename from spec/logic_spec.lua",
+        "rename to spec/rules_spec.lua",
+      }, "\n")
+      assert.are.equal("low", (verdict(renamed)))
     end)
 
     it("flags a new gua-allow comment", function()
@@ -157,6 +180,26 @@ describe("classify-risk", function()
       assertHigh("can't classify: spec/stubs.lua", diff("spec/stubs.lua"))
     end)
 
+    it("reads paths holding ' b/' from the +++ and --- lines", function()
+      local text = table.concat({
+        "diff --git a/scripts/a b/c.lua b/scripts/a b/c.lua",
+        "--- a/scripts/a b/c.lua",
+        "+++ b/scripts/a b/c.lua",
+        "@@ -1 +1 @@",
+        "+local x = 1",
+      }, "\n")
+      assertHigh("changes the guardrails: scripts/a b/c.lua", text)
+      local deleted = table.concat({
+        "diff --git a/docs/a b/old.md b/docs/a b/old.md",
+        "deleted file mode 100644",
+        "--- a/docs/a b/old.md",
+        "+++ /dev/null",
+        "@@ -1 +0,0 @@",
+        "-text",
+      }, "\n")
+      assert.are.equal("low", (verdict(deleted)))
+    end)
+
     it("flags a quoted path it can't parse", function()
       assertHigh("can't classify", 'diff --git "a/we ird.lua" "b/we ird.lua"')
     end)
@@ -178,8 +221,9 @@ describe("classify-risk", function()
 
   describe("diffCommand", function()
     it("diffs from the merge base", function()
-      assert.are.equal("git diff --no-color --no-ext-diff -M 'main...HEAD'", risk.diffCommand("main"))
-      assert.are.equal("git diff --no-color --no-ext-diff -M 'a...b'", risk.diffCommand("a", "b"))
+      local fixed = "git diff --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ -M "
+      assert.are.equal(fixed .. "'main...HEAD'", risk.diffCommand("main"))
+      assert.are.equal(fixed .. "'a...b'", risk.diffCommand("a", "b"))
     end)
 
     it("rejects option-like or quoted arguments", function()

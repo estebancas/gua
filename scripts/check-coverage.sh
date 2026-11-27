@@ -1,6 +1,8 @@
 #!/bin/sh
-# Fails when line coverage in luacov.report.out is below the minimum.
-# LuaCov has no built-in minimum, so this reads the "Total" line it writes.
+# Fails when line coverage in luacov.report.out is below the minimum, for the
+# total and for each measured file (.luacov), so a well-covered file can't
+# hide one that dropped. LuaCov has no built-in minimum, so this reads the
+# summary table it writes.
 # Usage (repo root): busted --coverage && luacov && sh scripts/check-coverage.sh [MIN]
 set -eu
 
@@ -23,9 +25,24 @@ fi
 # Per-file lines, so a failure says where coverage is missing.
 awk '/^Summary/ { on = 1 } on' "$report"
 
-if awk -v t="$total" -v m="$min" 'BEGIN { exit !(t + 0 < m + 0) }'; then
-  echo "Coverage ${total}% is below the minimum of ${min}%. Add busted specs for the new code in Logic.lua."
+# Files below the minimum: summary rows are "<file> <hits> <missed> <percent>%".
+low=$(awk -v m="$min" '
+  /^Summary/ { on = 1; next }
+  on && NF == 4 && $4 ~ /%$/ && $1 != "Total" {
+    p = $4; gsub("%", "", p)
+    if (p + 0 < m + 0) print $1 " (" $4 ")"
+  }' "$report")
+
+if [ -n "$low" ]; then
+  echo "Coverage is below the minimum of ${min}% in:"
+  echo "$low" | sed 's/^/  /'
+  echo "Add busted specs for the new code."
   exit 1
 fi
 
-echo "Coverage check: OK (${total}% >= ${min}%)"
+if awk -v t="$total" -v m="$min" 'BEGIN { exit !(t + 0 < m + 0) }'; then
+  echo "Coverage ${total}% is below the minimum of ${min}%. Add busted specs for the new code."
+  exit 1
+fi
+
+echo "Coverage check: OK (every file and the total ${total}% >= ${min}%)"

@@ -90,7 +90,21 @@ function M.parse(text)
         current.removed[#current.removed + 1] = line:sub(2)
       end
     elseif current then
-      -- File header lines (+++/--- are already known from "diff --git").
+      -- File header lines. The "diff --git" split is a guess when a path holds
+      -- " b/", so the rename, copy, --- and +++ lines win when present.
+      local renamedFrom = line:match("^rename from (.*)$") or line:match("^copy from (.*)$")
+      local renamedTo = line:match("^rename to (.*)$") or line:match("^copy to (.*)$")
+      local oldHeader = line:match("^%-%-%- a/(.-)\t?$")
+      local newHeader = line:match("^%+%+%+ b/(.-)\t?$")
+      -- (A quoted, unparsed path stays unknown.)
+      if not current.unparsed and (renamedFrom or oldHeader) then
+        current.oldPath = renamedFrom or oldHeader
+        if current.deleted then
+          current.path = current.oldPath
+        end
+      elseif not current.unparsed and (renamedTo or newHeader) then
+        current.path = renamedTo or newHeader
+      end
       if line:match("^new file mode") then
         current.new = true
       elseif line:match("^deleted file mode") then
@@ -153,6 +167,9 @@ function M.classify(text)
     if isSpec(file.oldPath or file.path) then
       if file.deleted then
         flag("weakens checks (spec file deleted)", file.path)
+      elseif not isSpec(file.path) then
+        -- busted only runs spec/*_spec.lua, so a rename away drops every test.
+        flag("weakens checks (spec file moved or renamed away)", file.oldPath)
       end
       -- An `it` block removed here and not added back (moved) is a lost test.
       local kept = {}
@@ -168,7 +185,8 @@ function M.classify(text)
 
     if isSpec(file.path) then
       for _, line in ipairs(file.added) do
-        if line:find("^%s*pending%s*%(") then
+        -- pending("..."), anywhere on the line, or it("name") with no function.
+        if line:find("%f[%w_]pending%s*%(") or line:find("^%s*it%s*%(%s*[\"'][^\"']*[\"']%s*%)") then
           flag("weakens checks (new pending test)", file.path)
         end
       end
@@ -234,7 +252,9 @@ function M.diffCommand(base, head)
       return nil
     end
   end
-  return ("git diff --no-color --no-ext-diff -M '%s...%s'"):format(base, head)
+  -- Fixed prefixes, so diff.noprefix or diff.mnemonicPrefix in the user's
+  -- git config can't change the headers parse() reads.
+  return ("git diff --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ -M '%s...%s'"):format(base, head)
 end
 
 function M.main(args)

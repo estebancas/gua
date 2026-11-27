@@ -26,7 +26,7 @@ sh scripts/test.sh              # tests + coverage only (clears old coverage dat
 
 CI also builds the zip with the BigWigs packager (`-d`, no upload) and runs `scripts/check-package.sh`. It fails when a file listed in `gua.toc` is missing from the zip, or when the zip holds anything besides `gua.toc`, the files it lists, `README.md`, `CHANGELOG.md`, `LICENSE` or `LICENSE.md`.
 
-- **Coverage:** `Logic.lua` must stay at 90% or more; new logic needs specs. Run tests through `scripts/test.sh`: plain `busted --coverage` adds to old coverage data, so a deleted test can still look covered.
+- **Coverage:** each measured file (`Logic.lua` and `scripts/classify-risk.lua`, set in `.luacov`) must stay at 90% or more, and so must the total; new logic needs specs. Run tests through `scripts/test.sh`: plain `busted --coverage` adds to old coverage data, so a deleted test can still look covered.
 - **Forbidden APIs:** fail the build unless a comment ending the line says `-- gua-allow: <reason>`. Adding one makes the PR risky. The list:
   - code from strings: `loadstring`, `load`, `RunScript`, `setfenv`/`getfenv`;
   - global lookup by a computed name: `_G[...]`, `getglobal`, `rawget(_G, ...)`;
@@ -113,7 +113,7 @@ Name branches `<type>/<issue>-<short-description>`, for example `feat/12-flight-
 
 The agent may merge its own **low-risk** PRs once every check is green; **risky** PRs are merged by the owner (#49).
 
-- `scripts/classify-risk.lua` decides, not the agent's judgment. Risky: anything touching the guardrails (`.github/`, `.claude/`, `scripts/`, `CLAUDE.md`, lint and coverage config, `spec/helpers.lua`), what ships (`.pkgmeta`, `*.toc`, `LICENSE`, `.gitignore`), `PLAN.md` or `rested-xp.md`; removed or pending tests; new `gua-allow` comments; forbidden APIs, secure code or saved-data changes; more than 300 lines or 10 files; anything it can't classify. Check a branch with `lua scripts/classify-risk.lua main`.
+- `scripts/classify-risk.lua` decides, not the agent's judgment. Risky: anything touching the guardrails (`.github/`, `.claude/`, `scripts/`, `CLAUDE.md`, lint and coverage config, `spec/helpers.lua`), what ships (`.pkgmeta`, `*.toc`, `LICENSE`, `.gitignore`), `PLAN.md` or `rested-xp.md`; removed, pending or renamed-away tests; new `gua-allow` comments; forbidden APIs, secure code (`Secure*Template`, `InCombatLockdown`, `SetAttribute`), or `DB_VERSION`/`migrate()` changes (other saved-data edits, like a new key in `DEFAULTS`, are not caught, so mention them in the PR); more than 300 lines or 10 files; anything it can't classify. Check a branch with `lua scripts/classify-risk.lua main`.
 - The `risk-gate` CI job shows the verdict on every PR. It is informational, not a required check.
 - Merge only with `~/.claude/bin/gua-merge <pr>`. It lives outside the repo and uses `origin/main`'s classifier, so a PR can't change either. A user-level hook blocks `gh pr merge`, `--admin`, pushes to `main` and force pushes.
 - Never try to lower a verdict (splitting a change to dodge a rule, editing the classifier in the same PR). If unsure, leave it to the owner.
