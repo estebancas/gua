@@ -5,6 +5,7 @@ local function onOff(value)
   return value and L["on"] or L["off"]
 end
 
+---@type table<string, fun(rest: string?)>
 local commands = {}
 
 function commands.toggle()

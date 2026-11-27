@@ -4,3 +4,4 @@
 release.sh
 .DS_Store
 luacov.*.out
+.luals/

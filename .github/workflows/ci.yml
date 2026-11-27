@@ -112,6 +112,33 @@ jobs:
       - name: Check the zip against the allowlist
         run: sh scripts/check-package.sh
 
+  # Type-checks WoW API calls (argument count and types, nil checks) against
+  # Ketho's Retail API annotations, with LuaLS. Settings in .luarc.json (#41).
+  types:
+    name: types
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Cache LuaLS and the WoW API annotations
+        id: luals-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .luals
+          key: luals-${{ runner.os }}-${{ hashFiles('scripts/setup-luals.sh') }}
+
+      # With a cache hit, the script only checks the pinned version and commit
+      # are there and skips the downloads.
+      - name: Install LuaLS and the WoW API annotations
+        run: sh scripts/setup-luals.sh
+
+      - name: Type check (LuaLS)
+        run: sh scripts/check-types.sh
+
   # Informational, not a required check (decided on #49): reports whether the
   # PR is low-risk (the agent may merge it once every check is green) or risky
   # (the owner merges it). It runs the base branch's classifier with Lua from
