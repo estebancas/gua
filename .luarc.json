@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "runtime.version": "Lua 5.1",
+  "workspace.library": [
+    ".luals/wow-api/Annotations/Core"
+  ],
+  "workspace.ignoreDir": [
+    ".lua",
+    ".luals",
+    ".release",
+    "spec",
+    "scripts"
+  ],
+  "workspace.checkThirdParty": false,
+  "diagnostics.globals": [
+    "SlashCmdList"
+  ],
+  "diagnostics.neededFileStatus": {
+    "undefined-field": "Any",
+    "need-check-nil": "Any",
+    "inject-field": "Any"
+  }
+}

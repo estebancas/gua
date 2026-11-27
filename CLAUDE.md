@@ -12,6 +12,7 @@ scripts/setup-dev.sh            # once: Lua 5.1 + luacheck + busted + luacov int
 . .lua/bin/activate             # each new shell, before luacheck/busted
 scripts/link.sh                 # once: symlink repo into the game's AddOns/ as "gua"
                                 # (override with WOW_DIR="/path/to/_forever_")
+sh scripts/setup-luals.sh       # once: LuaLS + WoW API annotations into ./.luals (pinned)
 
 luacheck .                      # lint
 busted                          # all tests (run from repo root; specs use relative paths)
@@ -19,9 +20,10 @@ busted spec/logic_spec.lua      # one spec file
 busted --filter "parseCommand"  # tests whose name matches
 
 # The CI checks (.github/workflows/ci.yml). Run them all before finishing work:
-sh scripts/check-all.sh         # luacheck, tests + coverage, forbidden APIs, TOC, and zizmor, actionlint
-                                # and gitleaks when installed (brew); reports every failure
+sh scripts/check-all.sh         # luacheck, tests + coverage, forbidden APIs, TOC, and the LuaLS type
+                                # check, zizmor, actionlint and gitleaks when installed; reports every failure
 sh scripts/test.sh              # tests + coverage only (clears old coverage data first)
+sh scripts/check-types.sh       # LuaLS type check only
 ```
 
 CI also builds the zip with the BigWigs packager (`-d`, no upload) and runs `scripts/check-package.sh`. It fails when a file listed in `gua.toc` is missing from the zip, or when the zip holds anything besides `gua.toc`, the files it lists, `README.md`, `CHANGELOG.md`, `LICENSE` or `LICENSE.md`.
@@ -35,6 +37,7 @@ CI also builds the zip with the BigWigs packager (`-d`, no upload) and runs `scr
   - `hooksecurefunc`.
 
   It scans every file `gua.toc` lists, whatever its folder. It ignores comments. It catches mistakes, not a call hidden on purpose (a name built at run time can still get past it), so review still matters.
+- **Types:** the `types` job runs LuaLS (settings in `.luarc.json`) against Ketho's WoW API annotations, which describe Retail. It catches wrong argument counts and types, and indexing a value that can be nil. It does not catch a misspelled field inside a `C_*` namespace or a frame method, so those still need care. It checks only addon code (not `spec/` or `scripts/`). When a finding is a real Forever difference from Retail, silence that one line with `---@diagnostic disable-next-line: <code>` and a comment saying why; Blizzard UI globals the annotations don't define (like `SlashCmdList`) go in `diagnostics.globals` in `.luarc.json`. Never turn a diagnostic off for the whole project to make it pass. Annotate your own tables (`---@type`, `---@param`) when LuaLS guesses their shape wrong.
 - **TOC:** every addon `.lua` file must be listed in `gua.toc` with the exact case, and no listed file may be in a folder `.pkgmeta` ignores. Only `spec/`, `scripts/`, `.lua/` and libraries declared under `externals:` in `.pkgmeta` are exempt; a folder name like `Libs/` is not.
 - **Workflows and secrets:** `lint-and-test` also runs zizmor (rules in `.github/zizmor.yml`), actionlint and gitleaks over the git history. Every workflow must:
   - pin each action to a full commit SHA with a version comment (Dependabot updates them weekly);
